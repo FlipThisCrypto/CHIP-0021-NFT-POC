@@ -1,0 +1,18 @@
+{
+  "name": "chip-0021-nft-poc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Orchard Living Tree NFT proof-of-concept.",
+  "type": "module",
+  "scripts": {
+    "verify": "node scripts/verify.mjs",
+    "test": "node scripts/verify.mjs",
+    "growth": "node lib/growth.js",
+    "binding": "node prototypes/device-binding-demo/binding-demo.mjs",
+    "serve:renderer": "python -m http.server 8137 --directory prototypes/living-tree-renderer",
+    "serve:prototypes": "python -m http.server 8137 --directory prototypes"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<!--
+    THE ORCHARD — LIVING TREE RENDERER (Heartwood engine)
+    Built on the algorithmic-art viewer template.
+    KEPT: layout, fonts, seed navigation, action buttons.
+    REPLACED: the algorithm, parameters, and parameter controls.
+
+    The tree is a pure function of (seed + earned state).
+    Same seed => same tree, always. Sliders = history, not identity.
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Orchard — Living Tree Renderer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --anthropic-dark: #141413;
+            --anthropic-light: #faf9f5;
+            --anthropic-mid-gray: #b0aea5;
+            --anthropic-light-gray: #e8e6dc;
+            --orchard-bark: #6E4B2A;
+            --orchard-leaf: #4C9A4B;
+            --orchard-gold: #E0A93B;
+            --orchard-blue: #6a9bcc;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--anthropic-light) 0%, #f1efe6 100%);
+            min-height: 100vh;
+            color: var(--anthropic-dark);
+        }
+        .container { display: flex; min-height: 100vh; padding: 20px; gap: 20px; }
+        .sidebar {
+            width: 330px; flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(10px);
+            padding: 24px; border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(20, 20, 19, 0.1);
+            overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 40px);
+        }
+        .sidebar h1 { font-family: 'Lora', serif; font-size: 24px; font-weight: 500; margin-bottom: 4px; }
+        .sidebar .subtitle { color: var(--anthropic-mid-gray); font-size: 13px; margin-bottom: 18px; line-height: 1.45; }
+        .dna-readout {
+            background: #1d1c1a; color: #e8e6dc; font-family: 'Courier New', monospace;
+            font-size: 13px; padding: 10px 12px; border-radius: 8px; margin-bottom: 24px;
+            border-left: 3px solid var(--orchard-leaf); letter-spacing: 0.3px;
+        }
+        .dna-readout b { color: var(--orchard-gold); font-weight: 600; }
+        .control-section { margin-bottom: 26px; }
+        .control-section h3 {
+            font-size: 15px; font-weight: 600; margin-bottom: 14px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .control-section h3::before { content: '•'; color: var(--orchard-leaf); font-weight: bold; }
+        .seed-input {
+            width: 100%; background: var(--anthropic-light); padding: 12px; border-radius: 8px;
+            font-family: 'Courier New', monospace; font-size: 14px; margin-bottom: 12px;
+            border: 1px solid var(--anthropic-light-gray); text-align: center;
+        }
+        .seed-input:focus { outline: none; border-color: var(--orchard-leaf); background: white; }
+        .seed-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+        .control-group { margin-bottom: 18px; }
+        .control-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; }
+        .slider-container { display: flex; align-items: center; gap: 12px; }
+        .slider-container input[type="range"] {
+            flex: 1; height: 4px; background: var(--anthropic-light-gray);
+            border-radius: 2px; outline: none; -webkit-appearance: none;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 16px; height: 16px; background: var(--orchard-leaf);
+            border-radius: 50%; cursor: pointer; transition: all 0.2s ease;
+        }
+        .slider-container input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        .slider-container input[type="range"]::-moz-range-thumb {
+            width: 16px; height: 16px; background: var(--orchard-leaf);
+            border-radius: 50%; border: none; cursor: pointer;
+        }
+        .value-display {
+            font-family: 'Courier New', monospace; font-size: 12px; color: #6f6c63;
+            min-width: 86px; text-align: right;
+        }
+        .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; }
+        .sensor-item { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; user-select: none; }
+        .sensor-item input { width: 16px; height: 16px; accent-color: var(--orchard-leaf); cursor: pointer; }
+        .button {
+            background: var(--orchard-leaf); color: white; border: none; padding: 10px 16px;
+            border-radius: 6px; font-size: 14px; font-weight: 500; cursor: pointer;
+            transition: all 0.2s ease; width: 100%;
+        }
+        .button:hover { filter: brightness(0.93); transform: translateY(-1px); }
+        .button:active { transform: translateY(0); }
+        .button.secondary { background: var(--orchard-blue); }
+        .button.tertiary { background: var(--orchard-bark); }
+        .button-row { display: flex; gap: 8px; }
+        .button-row .button { flex: 1; }
+        .hint { font-size: 11.5px; color: var(--anthropic-mid-gray); margin-top: 10px; line-height: 1.4; }
+        .canvas-area { flex: 1; display: flex; align-items: flex-start; justify-content: center; min-width: 0; }
+        #canvas-container {
+            width: 100%; max-width: 760px; border-radius: 12px; overflow: hidden;
+            box-shadow: 0 20px 40px rgba(20, 20, 19, 0.12); background: white;
+        }
+        #canvas-container canvas { display: block; width: 100% !important; height: auto !important; }
+        .loading { display: flex; align-items: center; justify-content: center; height: 600px; font-size: 18px; color: var(--anthropic-mid-gray); }
+        @media (max-width: 720px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; max-height: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>The Orchard</h1>
+            <div class="subtitle">Living Tree renderer — the art <i>is</i> the audit trail. Same seed grows the same tree; sliders are earned history.</div>
+
+            <div class="dna-readout" id="dna-readout">DNA · —</div>
+
+            <!-- Seed (FIXED) -->
+            <div class="control-section">
+                <h3>Device DNA seed</h3>
+                <input type="number" id="seed-input" class="seed-input" value="12345" min="1" onchange="updateSeed()">
+                <div class="seed-controls">
+                    <button class="button secondary" onclick="previousSeed()">← Prev</button>
+                    <button class="button secondary" onclick="nextSeed()">Next →</button>
+                </div>
+                <button class="button tertiary" onclick="randomSeedAndUpdate()">↻ Random device</button>
+                <div class="hint">Seed = the device's frozen identity. It fixes species, shape &amp; layout — it never changes with state.</div>
+            </div>
+
+            <!-- Earned state (VARIABLE) -->
+            <div class="control-section">
+                <h3>Earned state</h3>
+
+                <div class="control-group">
+                    <label>Life stage</label>
+                    <div class="slider-container">
+                        <input type="range" id="stage" min="0" max="4" step="1" value="4" oninput="updateParam('stage', this.value)">
+                        <span class="value-display" id="stage-value">Fruiting</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Health</label>
+                    <div class="slider-container">
+                        <input type="range" id="health" min="0" max="100" step="1" value="96" oninput="updateParam('health', this.value)">
+                        <span class="value-display" id="health-value">96%</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Season</label>
+                    <div class="slider-container">
+                        <input type="range" id="season" min="0" max="3" step="1" value="1" oninput="updateParam('season', this.value)">
+                        <span class="value-display" id="season-value">Summer</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Reputation</label>
+                    <div class="slider-container">
+                        <input type="range" id="reputation" min="0" max="4" step="1" value="3" oninput="updateParam('reputation', this.value)">
+                        <span class="value-display" id="reputation-value">Gold</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Achievement badges</label>
+                    <div class="slider-container">
+                        <input type="range" id="badges" min="0" max="6" step="1" value="3" oninput="updateParam('badges', this.value)">
+                        <span class="value-display" id="badges-value">3</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sensors -> fruit (VARIABLE) -->
+            <div class="control-section">
+                <h3>Verified sensors → fruit</h3>
+                <div class="sensor-grid" id="sensor-grid">
+                    <label class="sensor-item"><input type="checkbox" id="s-temperature" checked onchange="updateSensor('temperature', this.checked)"> 🍊 Temp</label>
+                    <label class="sensor-item"><input type="checkbox" id="s-humidity" checked onchange="updateSensor('humidity', this.checked)"> 🫐 Humidity</label>
+                    <label class="sensor-item"><input type="checkbox" id="s-pressure" checked onchange="updateSensor('pressure', this.checked)"> 🍎 Pressure</label>
+                    <label class="sensor-item"><input type="checkbox" id="s-light" onchange="updateSensor('light', this.checked)"> 🍋 Light</label>
+                    <label class="sensor-item"><input type="checkbox" id="s-air_quality" onchange="updateSensor('air_quality', this.checked)"> 🍇 Air Qual</label>
+                    <label class="sensor-item"><input type="checkbox" id="s-gas" onchange="updateSensor('gas', this.checked)"> 🥭 Gas</label>
+                    <label class="sensor-item"><input type="checkbox" id="s-gps" checked onchange="updateSensor('gps', this.checked)"> ✨ GPS (roots)</label>
+                </div>
+                <div class="hint">A sensor only earns fruit once the Oracle verifies real readings. GPS shows as glowing roots, not fruit.</div>
+            </div>
+
+            <!-- Actions (FIXED) -->
+            <div class="control-section">
+                <h3>Actions</h3>
+                <div class="button-row" style="margin-bottom:8px;">
+                    <button class="button" onclick="regenerate()">↻ Re-render</button>
+                    <button class="button tertiary" onclick="resetParameters()">Reset</button>
+                </div>
+                <button class="button secondary" onclick="downloadPNG()">⤓ Download PNG</button>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div id="canvas-container"><div class="loading">Planting…</div></div>
+        </div>
+    </div>
+
+    <script>
+    // ════════════════════════════════════════════════════════════════════
+    //  STATE
+    // ════════════════════════════════════════════════════════════════════
+    let params = {
+        seed: 12345,
+        stage: 4,          // 0 Seed · 1 Sprout · 2 Sapling · 3 Young · 4 Fruiting
+        health: 96,        // 0..100
+        season: 1,         // 0 Spring · 1 Summer · 2 Fall · 3 Winter
+        reputation: 3,     // 0 None · 1 Bronze · 2 Silver · 3 Gold · 4 Legendary
+        badges: 3,         // 0..6
+        sensors: { temperature:true, humidity:true, pressure:true, light:false, air_quality:false, gas:false, gps:true }
+    };
+    const defaultParams = JSON.parse(JSON.stringify(params));
+
+    const STAGE_NAMES = ['Seed', 'Sprout', 'Sapling', 'Young Tree', 'Fruiting Tree'];
+    const SEASON_NAMES = ['Spring', 'Summer', 'Fall', 'Winter'];
+    const REP_NAMES = ['None', 'Bronze', 'Silver', 'Gold', 'Legendary'];
+    const TAG_COLORS = [null, '#B87333', '#CBD1D6', '#FFC83D', '#FFC83D'];
+    const SENSOR_ORDER = ['temperature', 'humidity', 'pressure', 'light', 'air_quality', 'gas'];
+    const FRUIT_COLOR = {
+        temperature: '#FF9F43', humidity: '#5C6BC0', pressure: '#E0473A',
+        light: '#FFE14D', air_quality: '#8E5BC8', gas: '#FB8C00'
+    };
+    const GRID = [22, 30, 40, 54, 72];            // resolution evolution: age -> sharpness
+    const CANOPY_SCALE = [0, 0, 0.62, 0.82, 1.0];
+    const TRUNK_H = [0, 0, 0.16, 0.24, 0.30];
+    const ART = { x: 70, y: 28, w: 760 };          // square art region on the canvas
+
+    // seasonal palettes (leaf hues) — SEASON speaks in HUE
+    const LEAF_PAL = [
+        ['#7CC36A', '#5FB05A', '#4E9E4C', '#69BA5E'], // spring
+        ['#5BA85A', '#4C9A4B', '#3E8C40', '#56A050'], // summer
+        ['#E0A33A', '#D9772F', '#C44E22', '#E6C13A'], // fall
+        ['#9DB9AE', '#86AAB0', '#B4CBD0', '#A7C0B7']  // winter
+    ];
+    const SKY = ['#EAF3E2', '#E8F1F4', '#F5EDDF', '#EAF0F5'];
+    const SOIL = ['#D8C9A6', '#D9CBA2', '#E0CFA6', '#E4EAEF'];
+
+    let DNA = null;
+
+    // ════════════════════════════════════════════════════════════════════
+    //  SEEDED PRNG  (mulberry32 — hash-based, never Math.random for structure)
+    // ════════════════════════════════════════════════════════════════════
+    function mulberry32(a) {
+        return function () {
+            a |= 0; a = (a + 0x6D2B79F5) | 0;
+            let t = Math.imul(a ^ (a >>> 15), 1 | a);
+            t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+    function makeRNG(seed) {
+        // hash the seed so neighbouring integers diverge strongly
+        let h = 2166136261 ^ seed;
+        h = Math.imul(h ^ (h >>> 13), 16777619);
+        const r = mulberry32(h >>> 0);
+        return {
+            f: r,
+            range: (lo, hi) => lo + (hi - lo) * r(),
+            int: (lo, hi) => Math.floor(lo + (hi - lo + 1) * r()),
+            pick: (arr) => arr[Math.floor(r() * arr.length)],
+            chance: (p) => r() < p
+        };
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  DNA  — derived ONCE per seed, fixed order, NO state. This is identity.
+    // ════════════════════════════════════════════════════════════════════
+    function deriveDNA(seed) {
+        const R = makeRNG(seed);
+        const species = R.pick(['oak', 'maple', 'pine']);
+        const shape = R.pick(['tall', 'wide', 'crooked']);
+        const aspectX = shape === 'wide' ? 1.18 : shape === 'tall' ? 0.84 : 1.0;
+        const lean = shape === 'crooked' ? R.range(0.10, 0.22) * (R.chance(0.5) ? 1 : -1) : R.range(-0.04, 0.04);
+
+        // leaf clusters (oak/maple). index 0 = core (kept longest as health drops)
+        const clusters = [];
+        const n = species === 'pine' ? 0 : R.int(6, 9);
+        clusters.push({ dx: R.range(-0.12, 0.12), dy: R.range(-0.18, 0.02), r: R.range(0.92, 1.05), c: R.int(0, 3) });
+        for (let i = 1; i < n; i++) {
+            const ang = R.range(0, Math.PI * 2);
+            const rad = R.range(0.45, 0.95);
+            clusters.push({
+                dx: Math.cos(ang) * rad,
+                dy: Math.sin(ang) * rad * 0.8 - 0.1,
+                r: R.range(0.5, 0.82),
+                c: R.int(0, 3)
+            });
+        }
+        const pineTiers = species === 'pine' ? R.int(0, 1) : 0; // small variation knob
+
+        // ornament jitter (badges arc, sparkles) — frozen so state never shifts them
+        const badgeJit = Array.from({ length: 6 }, () => R.range(-0.05, 0.05));
+        const sparkles = Array.from({ length: 8 }, () => ({ a: R.range(0, Math.PI * 2), d: R.range(0.6, 1.15) }));
+        const blossoms = Array.from({ length: 6 }, () => R.int(0, Math.max(0, n - 1)));
+
+        return { seed, species, shape, aspectX, lean, clusters, pineTiers, badgeJit, sparkles, blossoms };
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  P5 LIFECYCLE
+    // ════════════════════════════════════════════════════════════════════
+    function setup() {
+        const c = createCanvas(900, 980);
+        c.parent('canvas-container');
+        pixelDensity(1);
+        const l = document.querySelector('.loading'); if (l) l.style.display = 'none';
+        setDNA();
+        noLoop();
+        redraw();
+    }
+    function draw() { renderTree(); }
+
+    function setDNA() {
+        DNA = deriveDNA(params.seed);
+        const el = document.getElementById('dna-readout');
+        if (el) el.innerHTML = 'DNA · <b>' + DNA.species.toUpperCase() + '</b> · ' + DNA.shape + ' · seed ' + params.seed;
+    }
+
+    // buffer(px) -> canvas(px)
+    function toCanvas(bx, by, G) { return { x: ART.x + (bx / G) * ART.w, y: ART.y + (by / G) * ART.w }; }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  RENDER  — composite, never enumerate.  z-order: sky → roots → tree → aura → badges → HUD
+    // ════════════════════════════════════════════════════════════════════
+    function renderTree() {
+        const { stage, health, season, reputation, badges } = params;
+
+        background('#FBFAF6');
+        // sky + soil bands (SEASON tints the world)
+        noStroke();
+        fill(SKY[season]); rect(ART.x, ART.y, ART.w, ART.w * 0.80);
+        fill(SOIL[season]); rect(ART.x, ART.y + ART.w * 0.80, ART.w, ART.w * 0.20);
+
+        const G = GRID[stage];
+        const g = createGraphics(G, G);
+        g.pixelDensity(1); g.noSmooth(); g.clear();
+        const m = drawTreeToBuffer(g, G, DNA, stage, health, season);
+
+        // roots glow (GPS = foundation) behind the pixels — energy is soft light
+        if (params.sensors.gps && stage >= 1 && health > 5) {
+            const base = toCanvas(G * 0.5 + DNA.lean * 2, G * 0.80, G);
+            drawGlow(base.x, base.y + 6, ART.w * 0.16, ART.w * 0.05, color(255, 205, 70), 4);
+        }
+
+        // pixel matter
+        push();
+        drawingContext.imageSmoothingEnabled = false;
+        image(g, ART.x, ART.y, ART.w, ART.w);
+        pop();
+        g.remove();
+
+        // canopy anchor for aura/badges
+        const top = toCanvas(m.cx, m.canopyTop, G);
+        const cen = toCanvas(m.cx, m.canopyCY, G);
+        const rCanvas = (m.R / G) * ART.w;
+
+        // legendary halo (energy)
+        if (reputation === 4 && stage >= 2 && health > 5) {
+            noStroke();
+            for (let i = 4; i >= 1; i--) {
+                fill(255, 205, 70, 14 + (4 - i) * 10);
+                ellipse(cen.x, top.y - rCanvas * 0.1, rCanvas * (0.9 + i * 0.14), rCanvas * (0.34 + i * 0.07));
+            }
+            noFill();
+            stroke(255, 205, 80, 210); strokeWeight(2.5);
+            ellipse(cen.x, top.y - rCanvas * 0.1, rCanvas * 1.85, rCanvas * 0.72);
+            for (const s of DNA.sparkles) {
+                const sx = cen.x + Math.cos(s.a) * rCanvas * 1.15 * s.d;
+                const sy = (top.y - rCanvas * 0.15) + Math.sin(s.a) * rCanvas * 0.5 * s.d;
+                noStroke(); fill(255, 224, 120); circle(sx, sy, 4);
+            }
+        }
+
+        // achievement badges (ornaments around the tree)
+        if (badges > 0 && stage >= 2 && health > 5) drawBadges(badges, cen.x, top.y, rCanvas);
+
+        drawHUD(stage, health, season, reputation, badges);
+    }
+
+    // returns geometry metrics in BUFFER coords: {cx, canopyCY, canopyTop, R}
+    function drawTreeToBuffer(g, G, dna, stage, health, season) {
+        const cx = G * 0.5, groundY = G * 0.80;
+        const pal = LEAF_PAL[season];
+        const dead = health <= 5;
+        const trunkH = G * TRUNK_H[stage];
+        const R = G * 0.26 * CANOPY_SCALE[stage];
+        const leanTop = dna.lean * trunkH;
+        const canopyCX = cx + leanTop;
+        const canopyCY = groundY - trunkH - R * 0.45;
+
+        g.noStroke();
+
+        // ---- Stage 0: SEED ---------------------------------------------------
+        if (stage === 0) {
+            g.fill('#7a5230'); g.ellipse(cx, groundY, G * 0.34, G * 0.10);          // mound
+            g.fill('#8B5E3C'); g.ellipse(cx, groundY - G * 0.02, G * 0.10, G * 0.10); // seed
+            if (!dead) {
+                g.stroke(leafCol(pal[0], health)); g.strokeWeight(Math.max(1, G * 0.03)); g.noFill();
+                g.line(cx, groundY - G * 0.04, cx, groundY - G * 0.16);
+                g.noStroke(); g.fill(leafCol(pal[1], health));
+                g.ellipse(cx - G * 0.05, groundY - G * 0.17, G * 0.10, G * 0.06);
+                g.ellipse(cx + G * 0.05, groundY - G * 0.17, G * 0.10, G * 0.06);
+            }
+            return { cx, canopyCY: groundY - G * 0.16, canopyTop: groundY - G * 0.22, R: G * 0.12 };
+        }
+
+        // trunk (matter) — drawn for stage >= 1
+        const trunkW = Math.max(2, G * 0.055 * (stage >= 4 ? 1.15 : stage >= 3 ? 1 : 0.85));
+        const trunkColor = dead ? '#7A7269' : '#6E4B2A';
+        if (stage === 1) {
+            g.stroke(trunkColor); g.strokeWeight(trunkW); g.noFill();
+            g.line(cx, groundY, cx, groundY - G * 0.16);
+            g.noStroke();
+        } else {
+            g.fill(trunkColor);
+            g.quad(cx - trunkW / 2, groundY, cx + trunkW / 2, groundY,
+                   canopyCX + trunkW * 0.32, canopyCY + R * 0.3, canopyCX - trunkW * 0.32, canopyCY + R * 0.3);
+            g.fill(dead ? '#675f57' : '#573A20'); // shaded side
+            g.rect(cx - trunkW / 2, groundY - trunkH * 0.55, Math.max(1, trunkW * 0.34), trunkH * 0.55);
+            if (dead) { // a broken branch stub reads as 'dead', distinct from winter-dormant
+                g.stroke('#675f57'); g.strokeWeight(Math.max(1, trunkW * 0.5));
+                g.line(canopyCX, canopyCY + R * 0.2, canopyCX + G * 0.12, canopyCY + R * 0.05);
+                g.noStroke();
+            }
+        }
+
+        // ---- Stage 1: SPROUT -------------------------------------------------
+        if (stage === 1) {
+            if (!dead) { g.fill(leafCol(pal[1], health)); g.ellipse(cx, groundY - G * 0.20, R || G * 0.2, R || G * 0.2); }
+            return { cx, canopyCY: groundY - G * 0.20, canopyTop: groundY - G * 0.30, R: G * 0.12 };
+        }
+
+        if (dead) return { cx, canopyCY, canopyTop: canopyCY - R, R };
+
+        // ---- Canopy (HEALTH = fullness + saturation, SEASON = hue) -----------
+        const winterMul = season === 3 ? 0.6 : 1;
+        const fullness = constrain(map(health, 5, 100, 0.32, 1), 0.32, 1);
+        const sag = (health < 60) ? map(health, 5, 60, R * 0.22, 0) : 0;
+
+        if (dna.species === 'pine') {
+            const tiers = [0, 0, 2, 3, 4][stage] + dna.pineTiers;
+            const kept = Math.max(1, Math.round(tiers * fullness * winterMul));
+            const topY = canopyCY - R * 0.8, botY = groundY - trunkH * 0.35;
+            for (let t = 0; t < kept; t++) {
+                const f = t / Math.max(1, tiers - 1);
+                const ty = lerp(botY, topY, f);
+                const tw = lerp(R * 1.15, R * 0.28, f) * dna.aspectX;
+                const th = (botY - topY) / tiers * 1.5;
+                g.fill(leafCol(pal[t % pal.length], health));
+                g.triangle(canopyCX - tw, ty + sag, canopyCX + tw, ty + sag, canopyCX, ty - th + sag);
+            }
+        } else {
+            const K = Math.max(1, Math.round(dna.clusters.length * fullness * winterMul));
+            for (let i = 0; i < K; i++) {
+                const c = dna.clusters[i];
+                const x = canopyCX + c.dx * R * dna.aspectX;
+                const y = canopyCY + c.dy * R + sag;
+                const rr = c.r * R * 0.62;
+                g.fill(leafCol(pal[c.c % pal.length], health));
+                g.ellipse(x, y, rr * 2, rr * 2);
+            }
+            // spring blossoms (SEASON token)
+            if (season === 0) {
+                g.fill('#F4A6C0');
+                for (const bi of dna.blossoms) {
+                    const c = dna.clusters[bi % dna.clusters.length];
+                    g.rect(canopyCX + c.dx * R * dna.aspectX, canopyCY + c.dy * R + sag - R * 0.2, Math.max(1, G * 0.035), Math.max(1, G * 0.035));
+                }
+            }
+        }
+
+        // ---- Fruit (SENSORS) — pixel matter, stage >= 2 ----------------------
+        const slots = fruitSlots(dna, canopyCX, canopyCY, R, sag, stage);
+        let fi = 0;
+        const fs = Math.max(2, Math.round(G * 0.06));
+        for (const s of SENSOR_ORDER) {
+            if (!params.sensors[s]) continue;
+            const p = slots[fi % slots.length]; fi++;
+            const dim = season === 3 ? 170 : 255; // fruit quieter in winter
+            const fc = color(FRUIT_COLOR[s]); fc.setAlpha(dim);
+            g.noStroke(); g.fill(fc);
+            g.rect(Math.round(p.x - fs / 2), Math.round(p.y - fs / 2), fs, fs);
+            g.fill(255, 255, 255, dim * 0.55); g.rect(Math.round(p.x - fs / 2), Math.round(p.y - fs / 2), Math.max(1, fs * 0.4), Math.max(1, fs * 0.4)); // gloss = quality
+        }
+
+        // ---- Reputation tag (matter) on the trunk ----------------------------
+        const tag = TAG_COLORS[params.reputation];
+        if (tag && stage >= 2) {
+            const tw = Math.max(3, G * 0.07);
+            g.fill('#3a3a3a'); g.rect(cx - tw / 2 - 1, groundY - trunkH * 0.5 - 1, tw + 2, tw * 0.85 + 2);
+            g.fill(tag); g.rect(cx - tw / 2, groundY - trunkH * 0.5, tw, tw * 0.85);
+        }
+
+        // ---- Winter snow (SEASON token) --------------------------------------
+        if (season === 3) {
+            g.fill(255, 255, 255, 230);
+            for (let i = 0; i < (dna.species === 'pine' ? 4 : Math.min(4, dna.clusters.length)); i++) {
+                let x, y;
+                if (dna.species === 'pine') { x = canopyCX + (i % 2 ? 1 : -1) * R * 0.4; y = canopyCY - R * 0.3 + i * R * 0.18; }
+                else { const c = dna.clusters[i]; x = canopyCX + c.dx * R * dna.aspectX; y = canopyCY + c.dy * R + sag - c.r * R * 0.55; }
+                g.rect(Math.round(x - G * 0.04), Math.round(y), Math.max(1, G * 0.08), Math.max(1, G * 0.03));
+            }
+        }
+
+        return { cx, canopyCY, canopyTop: canopyCY - R, R };
+    }
+
+    function fruitSlots(dna, ccx, ccy, R, sag, stage) {
+        const slots = [];
+        if (dna.species === 'pine') {
+            for (let t = 0; t < 5; t++) slots.push({ x: ccx + (t % 2 ? 1 : -1) * R * (0.55 - t * 0.06), y: ccy - R * 0.3 + t * R * 0.22 + sag });
+        } else {
+            for (const c of dna.clusters) slots.push({ x: ccx + c.dx * R * dna.aspectX * 0.85, y: ccy + c.dy * R + sag + R * 0.05 });
+        }
+        return slots;
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  COLOUR  — HEALTH desaturates toward grey (distinct channel from SEASON hue)
+    // ════════════════════════════════════════════════════════════════════
+    function leafCol(hex, health) {
+        const c = color(hex);
+        const grey = color('#8d918a');
+        const s = constrain(map(health, 5, 100, 0.18, 1), 0.18, 1);
+        return lerpColor(c, grey, (1 - s) * 0.85);
+    }
+
+    // soft concentric glow (no gradients) — used for roots & halo
+    function drawGlow(x, y, rx, ry, col, layers) {
+        noStroke();
+        for (let i = layers; i >= 1; i--) {
+            const a = map(i, 1, layers, 70, 12);
+            col.setAlpha(a);
+            fill(col);
+            ellipse(x, y, rx * 2 * (i / layers), ry * 2 * (i / layers));
+        }
+        col.setAlpha(255);
+    }
+
+    function drawBadges(n, cx, topY, rCanvas) {
+        const palette = ['#FFC83D', '#2DD4BF'];
+        for (let i = 0; i < n; i++) {
+            const t = n === 1 ? 0.5 : i / (n - 1);
+            const ang = lerp(-Math.PI * 0.72, -Math.PI * 0.28, t) + (DNA.badgeJit[i] || 0);
+            const bx = cx + Math.cos(ang) * rCanvas * 1.02;
+            let by = topY + rCanvas * 0.12 + Math.sin(ang) * rCanvas * 0.62;
+            by = Math.max(ART.y + 14, by);
+            noStroke(); fill(20, 20, 18, 40); circle(bx, by + 2, 17);
+            stroke('#7a5a12'); strokeWeight(1.5); fill(palette[i % 2]); circle(bx, by, 15);
+            noStroke(); fill(255, 255, 255, 150); circle(bx - 2.5, by - 2.5, 5);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  HUD  — read the whole life without a stat panel
+    // ════════════════════════════════════════════════════════════════════
+    function drawHUD(stage, health, season, reputation, badges) {
+        const y0 = ART.y + ART.w + 16;
+        stroke('#e3e0d6'); strokeWeight(1); line(ART.x, y0, ART.x + ART.w, y0);
+        noStroke();
+        textAlign(LEFT, TOP);
+        textStyle(BOLD);
+        textSize(28);
+        fill('#2c2a26');
+        text(DNA.species.toUpperCase() + ' · ' + DNA.shape, ART.x, y0 + 16);
+        textAlign(RIGHT, TOP);
+        fill(stage >= 4 ? '#3E8C40' : '#6f6c63');
+        text(STAGE_NAMES[stage], ART.x + ART.w, y0 + 20);
+
+        textStyle(NORMAL);
+        textAlign(LEFT, TOP);
+        textSize(16);
+        const sensorCount = SENSOR_ORDER.filter(s => params.sensors[s]).length;
+        const dead = health <= 5;
+        const line2 = (dead ? '✝ dead' : '❤ ' + health + '%') +
+                      '    ' + SEASON_NAMES[season] +
+                      '    ★ ' + REP_NAMES[reputation] +
+                      '    ⬡ ' + badges + ' badges' +
+                      '    🍃 ' + sensorCount + (params.sensors.gps ? ' +roots' : '');
+        fill('#6f6c63');
+        text(line2, ART.x, y0 + 58);
+
+        textSize(13); fill('#a7a299');
+        text('Same seed → same tree. Sliders are earned history, not identity.', ART.x, y0 + 88);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  UI HANDLERS
+    // ════════════════════════════════════════════════════════════════════
+    function fmtParam(name, v) {
+        if (name === 'stage') return STAGE_NAMES[v];
+        if (name === 'season') return SEASON_NAMES[v];
+        if (name === 'reputation') return REP_NAMES[v];
+        if (name === 'health') return v + '%';
+        return '' + v;
+    }
+    function updateParam(name, value) {
+        params[name] = parseInt(value);
+        const d = document.getElementById(name + '-value');
+        if (d) d.textContent = fmtParam(name, params[name]);
+        redraw();
+    }
+    function updateSensor(name, checked) { params.sensors[name] = checked; redraw(); }
+
+    function updateSeedDisplay() { document.getElementById('seed-input').value = params.seed; }
+    function updateSeed() {
+        const v = parseInt(document.getElementById('seed-input').value);
+        if (v && v > 0) { params.seed = v; setDNA(); redraw(); } else updateSeedDisplay();
+    }
+    function previousSeed() { params.seed = Math.max(1, params.seed - 1); updateSeedDisplay(); setDNA(); redraw(); }
+    function nextSeed() { params.seed = params.seed + 1; updateSeedDisplay(); setDNA(); redraw(); }
+    function randomSeedAndUpdate() { params.seed = Math.floor(Math.random() * 999999) + 1; updateSeedDisplay(); setDNA(); redraw(); }
+    function regenerate() { setDNA(); redraw(); }
+
+    function resetParameters() {
+        params = JSON.parse(JSON.stringify(defaultParams));
+        ['stage', 'health', 'season', 'reputation', 'badges'].forEach(n => {
+            const el = document.getElementById(n); if (el) el.value = params[n];
+            const d = document.getElementById(n + '-value'); if (d) d.textContent = fmtParam(n, params[n]);
+        });
+        Object.keys(params.sensors).forEach(s => { const el = document.getElementById('s-' + s); if (el) el.checked = params.sensors[s]; });
+        updateSeedDisplay(); setDNA(); redraw();
+    }
+    function downloadPNG() { saveCanvas('orchard-tree-' + params.seed + '-s' + params.stage, 'png'); }
+
+    window.addEventListener('load', updateSeedDisplay);
+    </script>
+</body>
+</html>

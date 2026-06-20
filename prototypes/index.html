@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Orchard — Prototypes</title>
+  <style>
+    :root { --bg:#0F1A13; --soil:#241C12; --leaf:#5BA85A; --gold:#E0A93B; --ink:#EAF3E2; --muted:#9FB3A2; }
+    * { box-sizing: border-box; margin: 0; }
+    body { background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; min-height: 100vh; padding: 48px 24px; }
+    .wrap { max-width: 860px; margin: 0 auto; }
+    h1 { font-family: Georgia, serif; font-size: 40px; letter-spacing: 0.5px; }
+    .tag { color: var(--gold); font-size: 18px; margin: 6px 0 4px; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+    .cards { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    @media (min-width: 640px) { .cards { grid-template-columns: 1fr 1fr; } }
+    a.card { display: block; text-decoration: none; color: inherit; background: #15231a; border: 1px solid #24382a;
+             border-radius: 14px; padding: 22px; transition: all .15s ease; }
+    a.card:hover { border-color: var(--leaf); transform: translateY(-2px); }
+    a.card h2 { font-size: 18px; margin-bottom: 6px; }
+    a.card p { color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+    .pill { display:inline-block; font-size: 11px; color: var(--bg); background: var(--leaf); border-radius: 999px; padding: 2px 9px; margin-bottom: 10px; font-weight: 600; }
+    .pill.code { background: var(--gold); }
+    footer { color: var(--muted); font-size: 13px; margin-top: 36px; }
+    footer a { color: var(--gold); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🌳 The Orchard</h1>
+    <div class="tag">Living Tree NFTs — prototypes</div>
+    <div class="sub">Dynamic Chia NFTs bound to real-world sensor hardware. These are early, runnable proofs.</div>
+
+    <section style="background:#15231a;border:1px solid #24382a;border-radius:14px;padding:20px 22px;margin-bottom:22px;">
+      <p style="font-size:14.5px;line-height:1.6;color:#cfe0d2;margin:0 0 12px;">
+        Own an <b style="color:#E0A93B;">Orchard Pass</b> → flash an ESP32 sensor node → prove it's alive →
+        mint a <b style="color:#E0A93B;">Living Tree NFT</b> that grows as the hardware earns uptime, sensors and rewards.
+        The artwork <i>is</i> the audit trail.
+      </p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12.5px;color:#9FB3A2;font-family:ui-monospace,monospace;">
+        <span>🔮 Oracle = truth layer</span><span>🧃 JUICE (Chia CAT) = rewards</span>
+        <span>🔑 P-256 device identity</span><span>📦 status: early proof-of-concept</span>
+      </div>
+    </section>
+
+    <div class="cards">
+      <a class="card" href="living-tree-renderer/">
+        <span class="pill">interactive</span>
+        <h2>Living Tree Renderer →</h2>
+        <p>The "Heartwood" engine. A deterministic, seeded pixel tree that grows from earned state — change the device seed, drag the sliders, watch the same Tree live its life.</p>
+      </a>
+      <a class="card" href="https://github.com/FlipThisCrypto/CHIP-0021-NFT-POC/tree/main/prototypes/device-binding-demo">
+        <span class="pill code">node</span>
+        <h2>Device ⇄ Tree Binding Demo →</h2>
+        <p>A zero-dependency proof of the identity model: P-256 keys, signed heartbeats, and the Oracle rejecting replays, forgeries, impostors, and identity theft. Run with <code>node binding-demo.mjs</code>.</p>
+      </a>
+    </div>
+
+    <footer>
+      <a href="https://github.com/FlipThisCrypto/CHIP-0021-NFT-POC">GitHub repo</a> ·
+      <a href="https://github.com/FlipThisCrypto/CHIP-0021-NFT-POC/blob/main/README.md">README</a> ·
+      <a href="https://github.com/FlipThisCrypto/CHIP-0021-NFT-POC/tree/main/specs">specs</a> ·
+      <a href="https://theorchard.network">theorchard.network</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Builds / outputs
+dist/
+build/
+.next/
+out/
+*.log
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+secrets/
+.claude/settings.local.json
+
+# Renderer / demo exports
+orchard-tree-*.png
+*.local.png
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
