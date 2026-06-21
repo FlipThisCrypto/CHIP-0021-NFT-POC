@@ -1,5 +1,5 @@
 # Publishes the static prototypes (the Living Tree renderer) to GitHub Pages.
-# One-time setup: repo Settings → Pages → Source = "GitHub Actions".
+# Setup (one-time, done): repo Settings → Pages → Source = "GitHub Actions".
 # After it runs, the renderer is at:  https://<user>.github.io/CHIP-0021-NFT-POC/living-tree-renderer/
 name: Deploy prototypes to GitHub Pages
 
