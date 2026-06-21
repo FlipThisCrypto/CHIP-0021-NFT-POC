@@ -141,7 +141,7 @@
                     <label>Life stage</label>
                     <div class="slider-container">
                         <input type="range" id="stage" min="0" max="4" step="1" value="4" oninput="updateParam('stage', this.value)">
-                        <span class="value-display" id="stage-value">Fruiting</span>
+                        <span class="value-display" id="stage-value">Mature Tree</span>
                     </div>
                 </div>
 
@@ -215,7 +215,7 @@
     // ════════════════════════════════════════════════════════════════════
     let params = {
         seed: 12345,
-        stage: 4,          // 0 Seed · 1 Sprout · 2 Sapling · 3 Young · 4 Fruiting
+        stage: 4,          // 0 Seed · 1 Sprout · 2 Sapling · 3 Young · 4 Mature
         health: 96,        // 0..100
         season: 1,         // 0 Spring · 1 Summer · 2 Fall · 3 Winter
         reputation: 3,     // 0 None · 1 Bronze · 2 Silver · 3 Gold · 4 Legendary
@@ -224,7 +224,15 @@
     };
     const defaultParams = JSON.parse(JSON.stringify(params));
 
-    const STAGE_NAMES = ['Seed', 'Sprout', 'Sapling', 'Young Tree', 'Fruiting Tree'];
+    const STAGE_NAMES = ['Seed', 'Sprout', 'Sapling', 'Young Tree', 'Mature Tree'];
+    const CARD_PROFILE = [
+        { bit: '2-BIT', res: '8x8', colors: '2 COLORS', upscale: '128x' },
+        { bit: '4-BIT', res: '32x32', colors: '4 COLORS', upscale: '32x' },
+        { bit: '8-BIT', res: '64x64', colors: '8 COLORS', upscale: '16x' },
+        { bit: '16-BIT', res: '128x128', colors: '16 COLORS', upscale: '8x' },
+        { bit: '32-BIT', res: '512x512', colors: '256 COLORS', upscale: '2x' }
+    ];
+    const BASE_IMAGE_RESOLUTION = '1024x1024';
     const SEASON_NAMES = ['Spring', 'Summer', 'Fall', 'Winter'];
     const REP_NAMES = ['None', 'Bronze', 'Silver', 'Gold', 'Legendary'];
     const TAG_COLORS = [null, '#B87333', '#CBD1D6', '#FFC83D', '#FFC83D'];
@@ -233,10 +241,20 @@
         temperature: '#FF9F43', humidity: '#5C6BC0', pressure: '#E0473A',
         light: '#FFE14D', air_quality: '#8E5BC8', gas: '#FB8C00'
     };
-    const GRID = [22, 30, 40, 54, 72];            // resolution evolution: age -> sharpness
+    const GRID = [8, 32, 64, 128, 512];           // native grid, upscaled to a 1024x1024 base image
     const CANOPY_SCALE = [0, 0, 0.62, 0.82, 1.0];
     const TRUNK_H = [0, 0, 0.16, 0.24, 0.30];
-    const ART = { x: 70, y: 28, w: 760 };          // square art region on the canvas
+    const ART = { x: 90, y: 94, w: 720 };          // clean square art layer
+    const DEMO_CARD = {
+        collection: 'The Orchard Living Trees',
+        treeId: 'TREE-000001',
+        treeName: "Rick's Backyard Tree",
+        growthStatus: 'Active',
+        uptime: 98.7,
+        firmware: 'orchard-fw-0.1.0',
+        region: 'US-KY',
+        lastEpoch: 123456
+    };
 
     // seasonal palettes (leaf hues) — SEASON speaks in HUE
     const LEAF_PAL = [
@@ -387,7 +405,7 @@
         // achievement badges (ornaments around the tree)
         if (badges > 0 && stage >= 2 && health > 5) drawBadges(badges, cen.x, top.y, rCanvas);
 
-        drawHUD(stage, health, season, reputation, badges);
+        drawCardLayer(stage, health);
     }
 
     // returns geometry metrics in BUFFER coords: {cx, canopyCY, canopyTop, R}
@@ -567,6 +585,57 @@
     // ════════════════════════════════════════════════════════════════════
     //  HUD  — read the whole life without a stat panel
     // ════════════════════════════════════════════════════════════════════
+    function drawCardLayer(stage, health) {
+        const profile = CARD_PROFILE[stage];
+        const verifiedSensors = Object.keys(params.sensors).filter(s => params.sensors[s]);
+        const rewardsActive = stage >= 2 && health >= 85;
+
+        noStroke();
+        fill('#FBFAF6'); rect(0, 0, width, ART.y - 16);
+        fill('#FBFAF6'); rect(0, ART.y + ART.w + 6, width, height - (ART.y + ART.w + 6));
+
+        textStyle(BOLD);
+        textSize(30);
+        textAlign(LEFT, TOP);
+        fill('#2c2a26');
+        text('STAGE ' + stage + ': ' + STAGE_NAMES[stage].toUpperCase(), ART.x, 28);
+        textAlign(RIGHT, TOP);
+        fill('#3E8C40');
+        text(profile.bit + ' CHARACTER', ART.x + ART.w, 28);
+
+        textStyle(NORMAL);
+        textSize(13);
+        textAlign(LEFT, TOP);
+        fill('#8f8a80');
+        text(DEMO_CARD.collection + ' · ' + DEMO_CARD.treeName + ' · ' + DNA.species.toUpperCase() + ' DNA', ART.x, 63);
+
+        const y0 = ART.y + ART.w + 22;
+        stroke('#e3e0d6'); strokeWeight(1); line(ART.x, y0 - 11, ART.x + ART.w, y0 - 11);
+        noStroke();
+
+        textAlign(LEFT, TOP);
+        textStyle(BOLD); textSize(13); fill('#8f8a80'); text('PALETTE', ART.x, y0);
+        textSize(25); fill('#2c2a26'); text(profile.colors, ART.x, y0 + 19);
+        textStyle(NORMAL); textSize(14); fill('#6f6c63'); text('RESOLUTION: ' + profile.res + ' -> ' + BASE_IMAGE_RESOLUTION, ART.x, y0 + 52);
+        text('UPSCALE: ' + profile.upscale, ART.x, y0 + 72);
+
+        textAlign(RIGHT, TOP);
+        textStyle(BOLD); textSize(14); fill('#2c2a26');
+        text('TREE ID: ' + DEMO_CARD.treeId, ART.x + ART.w, y0);
+        textStyle(NORMAL); textSize(14); fill('#6f6c63');
+        text('HEALTH: ' + health + '%', ART.x + ART.w, y0 + 24);
+        text('UPTIME: ' + DEMO_CARD.uptime + '%', ART.x + ART.w, y0 + 46);
+        text('SENSORS: ' + verifiedSensors.length + ' VERIFIED', ART.x + ART.w, y0 + 68);
+
+        const barY = height - 44;
+        noStroke(); fill('#1d1c1a'); rect(ART.x, barY, ART.w, 28, 4);
+        textAlign(CENTER, CENTER);
+        textStyle(BOLD); textSize(12); fill('#E8E6DC');
+        const gpsStatus = params.sensors.gps ? 'GPS VERIFIED' : 'GPS PENDING';
+        const rewardStatus = rewardsActive ? 'REWARDS ACTIVE' : 'REWARDS LOCKED';
+        text(gpsStatus + ' | ' + rewardStatus + ' | LAST SEEN: EPOCH ' + DEMO_CARD.lastEpoch, ART.x + ART.w / 2, barY + 14);
+    }
+
     function drawHUD(stage, health, season, reputation, badges) {
         const y0 = ART.y + ART.w + 16;
         stroke('#e3e0d6'); strokeWeight(1); line(ART.x, y0, ART.x + ART.w, y0);

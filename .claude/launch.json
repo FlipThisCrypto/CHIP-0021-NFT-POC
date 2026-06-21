@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8137", "--directory", "prototypes/living-tree-renderer"],
       "port": 8137
+    },
+    {
+      "name": "oracle",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["oracle/server.mjs"],
+      "port": 8791
     }
   ]
 }

@@ -8,7 +8,11 @@
     "verify": "node scripts/verify.mjs",
     "test": "node scripts/verify.mjs",
     "growth": "node lib/growth.js",
+    "card": "node lib/card.js",
     "binding": "node prototypes/device-binding-demo/binding-demo.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "oracle": "node oracle/server.mjs",
+    "sim": "node oracle/sim-device.mjs",
     "serve:renderer": "python -m http.server 8137 --directory prototypes/living-tree-renderer",
     "serve:prototypes": "python -m http.server 8137 --directory prototypes"
   },

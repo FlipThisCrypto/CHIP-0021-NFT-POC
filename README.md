@@ -19,8 +19,8 @@ The Orchard has two NFT collections:
 The **Pass** is the gateway. The **Living Tree** is the planted hardware identity. The **Oracle** is the truth layer. **JUICE** (a Chia CAT) is the reward layer. The artwork is how you read it all at a glance.
 
 > ### ⚠️ Project status: early proof-of-concept (as of 2026-06-20)
-> **What runs today:** the metadata schema + [growth rules](specs/growth-rules.md), a deterministic **artwork renderer** ([`prototypes/living-tree-renderer/`](prototypes/living-tree-renderer/)), and a verified, dependency-free **device-binding crypto demo** ([`prototypes/device-binding-demo/`](prototypes/device-binding-demo/) — all checks pass).
-> **What is *designed but not yet built*:** the Oracle backend, device firmware, the pass-gated flasher, dashboards, and on-chain minting. Those are specced in [`specs/`](specs/) and tracked in the [roadmap](#roadmap) — not yet in code.
+> **What runs today (zero-install — Node + a browser):** the metadata schema + [growth rules](specs/growth-rules.md); a deterministic **artwork renderer**; a verified **device-binding crypto demo**; and a complete **end-to-end Oracle testbed** — register a device, grow it through every stage, mint, watch it in an operator **dashboard**, and claim JUICE, all driven by real P-256 signatures. `npm test` runs the whole thing (8 checks, including a 27-assertion integration test). See [Run the full testbed](#run-the-full-testbed-end-to-end).
+> **What is still *mocked* (vs. production):** a persistent database, real Chia wallet-RPC minting + on-chain metadata anchoring, the on-chain Pass lookup, firmware on real hardware, and DataLayer. The testbed mocks the chain so everything else runs for real.
 
 ---
 
@@ -29,6 +29,7 @@ The **Pass** is the gateway. The **Living Tree** is the planted hardware identit
 - [The concept](#the-concept)
 - [The vision (end-to-end flow)](#the-vision-end-to-end-flow)
 - [Quick start — run the artwork renderer](#quick-start--run-the-artwork-renderer)
+- [Run the full testbed (end to end)](#run-the-full-testbed-end-to-end)
 - [Repository structure](#repository-structure)
 - [How it works](#how-it-works)
   - [Binding a device to a Tree](#binding-a-device-to-a-tree)
@@ -87,7 +88,7 @@ A user owns a Pass. That Pass lets them plant real-world sensor Trees. They flas
 
 ## Quick start — run the artwork renderer
 
-The one thing you can run today is the **Heartwood** artwork engine: a deterministic, seeded renderer that grows a Tree from `(device seed + earned state)`. No build step, no dependencies beyond a browser.
+The simplest thing to run is the **Heartwood** artwork engine: a deterministic, seeded renderer that grows a Tree from `(device seed + earned state)`. No build step, no dependencies beyond a browser. (For the whole system wired together, see [Run the full testbed](#run-the-full-testbed-end-to-end).)
 
 **Option A — just open it:** open [`prototypes/living-tree-renderer/index.html`](prototypes/living-tree-renderer/index.html) in Chrome or Edge.
 
@@ -116,29 +117,48 @@ node lib/growth.js                                     # the growth rules  → �
 
 ---
 
+## Run the full testbed (end to end)
+
+The Oracle, a device simulator, and an operator dashboard now run the **entire flow** locally — zero dependencies (Node 18+; the browser pages need Chromium).
+
+```bash
+npm run oracle     # Oracle API + dashboard → http://localhost:8791
+npm run sim        # drive a simulated device — watch a Tree grow seed → legendary in the terminal
+npm run e2e        # automated end-to-end test (27 assertions: full growth + every attack rejected)
+npm test           # the full gate: 8 consistency checks, e2e included
+```
+
+Open **http://localhost:8791** and click **🌱 Plant a Tree**: your browser generates a P-256 device, signs a real registration + heartbeats (the Oracle verifies each one), mints the Tree, and you watch it grow — gaining fruit, climbing reputation bronze → legendary, accruing JUICE — alongside a network overview and a live activity log.
+
+**Real here:** cryptographic identity, signature verification, the growth state machine, sensor verification, card metadata, and JUICE accrual/claim. **Mocked:** the Chia chain (minting, Pass lookup) and persistence. Details in [`oracle/README.md`](oracle/README.md).
+
+---
+
 ## Repository structure
 
 ```
 CHIP-0021-NFT-POC/
-├── README.md · CONTRIBUTING.md · LICENSE · .gitignore
-├── specs/
-│   ├── tree-nft-metadata.md           ← NFT metadata schema (CHIP-0007) + art recipe
-│   ├── device-registration.md         ← device identity & signing protocol
-│   ├── oracle-api.md                  ← Oracle endpoints + database schema
-│   └── growth-rules.md                ← earned-state → artwork thresholds
+├── README.md · CONTRIBUTING.md · CLAUDE.md · LICENSE · package.json
+├── specs/                              ← tree-nft-metadata · device-registration ·
+│                                          oracle-api · growth-rules · nft-card-output
 ├── lib/
-│   └── growth.js                      ← shared rules engine (Oracle + renderer agree)
+│   ├── identity.mjs                    ← canonical P-256 device identity (browser + node)
+│   ├── growth.js                       ← earned state → art recipe (one source of truth)
+│   └── card.js                         ← standardized NFT card / live-data layer
+├── oracle/                             ← BUILT testbed
+│   ├── server.mjs                      ← zero-dep Oracle API + dashboard host
+│   └── sim-device.mjs                  ← signing device simulator
+├── web/dashboard/index.html            ← BUILT operator dashboard (served by the Oracle)
 ├── prototypes/
-│   ├── index.html                     ← prototypes landing page (for GitHub Pages)
-│   ├── living-tree-renderer/          ← Heartwood artwork engine (p5.js) + HEARTWOOD.md
-│   └── device-binding-demo/           ← runnable P-256 identity proof (Node)
+│   ├── living-tree-renderer/           ← Heartwood artwork engine (p5.js) + HEARTWOOD.md
+│   └── device-binding-demo/            ← runnable P-256 identity proof (Node)
+├── scripts/                            ← verify.mjs (consistency harness) + e2e.mjs
 ├── assets/banner.svg
-├── oracle/  firmware/  web/  chialisp/ ← component stubs (planned, not started)
-├── .github/workflows/pages.yml        ← deploy prototypes to GitHub Pages
-└── .claude/launch.json                ← local static-server config
+├── firmware/  chialisp/                ← component stubs (planned)
+└── .github/workflows/pages.yml · .claude/launch.json
 ```
 
-The `oracle/`, `firmware/`, `web/`, and `chialisp/` directories are **stubs** describing planned components — each has a README, but no implementation yet.
+The `oracle/` + `web/dashboard/` are a **runnable testbed**; `firmware/` and `chialisp/` are still **stubs** describing planned components.
 
 ---
 
@@ -233,12 +253,12 @@ A sensor only earns its fruit once the Oracle **verifies real readings** — dec
 
 | Phase | Scope | Status |
 |---|---|---|
-| **1 — Design spec** | Metadata schema, field tiers, minting & anti-spam rules, dashboard requirements | 🟡 In progress (schema + artwork + growth rules done) |
-| **2 — Pass-gated flasher** | Wallet connect → verify Pass → unlock in-browser firmware flashing | ⚪ Not started |
-| **3 — Device registration** | Device reports MAC hash + public key + sensor manifest; Oracle creates a pending Tree; user names it | 🟢 Protocol spec + binding demo done; Oracle impl pending |
-| **4 — Tree NFT minting** | Generate metadata, mint the NFT, bind it to the device, show it in the dashboard | ⚪ Not started |
-| **5 — Dynamic updates** | Owner edits, new sensor verification, growth-stage & artwork updates | ⚪ Not started |
-| **6 — Rewards** | Uptime tracking, reward eligibility, JUICE accrual & claim | ⚪ Not started |
+| **1 — Design spec** | Metadata schema, field tiers, minting & anti-spam rules | 🟢 Schema + artwork + growth + card layers done |
+| **2 — Pass-gated flasher** | Wallet connect → verify Pass → unlock flashing | 🟢 Testbed (wallet + mock Pass gate, in-browser device); real Web Serial flasher pending |
+| **3 — Device registration** | Signed register + sensor manifest → pending Tree | 🟢 Done in testbed (Oracle + binding demo + e2e) |
+| **4 — Tree NFT minting** | Mint, bind to device, show in the dashboard | 🟢 Testbed mint + dashboard; real Chia mint pending |
+| **5 — Dynamic updates** | Sensor verification, growth-stage & artwork updates | 🟢 Live in the Oracle testbed |
+| **6 — Rewards** | Uptime tracking, reward eligibility, JUICE accrual & claim | 🟢 Testbed (accrue + claim, mock CAT); real CAT payout pending |
 | **7 — Decentralization** | Chia DataLayer attestations, public proofs, open API | ⚪ Not started |
 
 ---

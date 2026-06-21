@@ -31,6 +31,8 @@ dynamic Chia NFTs. The core design is:
   DNA plus earned Oracle state.
 - The Oracle and renderer must agree by deriving growth, fruit, and reputation
   from `lib/growth.js`.
+- NFT card data is layered after the clean artwork and standardized by
+  `lib/card.js` and `specs/nft-card-output.md`.
 
 ## Work loop
 
@@ -51,6 +53,7 @@ dynamic Chia NFTs. The core design is:
 npm test
 node prototypes/device-binding-demo/binding-demo.mjs
 node lib/growth.js
+node lib/card.js
 python -m http.server 8137 --directory prototypes/living-tree-renderer
 ```
 

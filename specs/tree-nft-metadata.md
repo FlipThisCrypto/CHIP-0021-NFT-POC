@@ -204,6 +204,17 @@ Add an `art` block under `orchard`:
 | stage promotion · new verified sensor → new fruit · reputation tier change · new badge | season · health fluctuation · weather · fruit gloss |
 | set once at mint: species, shape_variant, dna_seed | |
 
+### Clean art layer vs card layer
+
+The canonical Tree image should be generated as a clean art layer first. The
+stage resolution is the native pixel grid; every clean base image is normalized
+to `1024x1024` before card/text composition. Standard NFT card/UI data such as
+Tree ID, health, uptime, sensors, rewards, firmware, region, and last verified
+epoch is added afterward by the card layer defined in
+[`nft-card-output.md`](nft-card-output.md) and implemented in
+[`lib/card.js`](../lib/card.js). This keeps art-generation fields separate from
+live data fields.
+
 ### Glance encoding — each fact on its own channel + spatial zone
 | Fact | Visual channel | Zone | Read in |
 |---|---|---|---|

@@ -14,7 +14,10 @@ node prototypes/device-binding-demo/binding-demo.mjs     # → ✅ 10 passed, 0 
 # 2. The growth-rules engine
 node lib/growth.js                                        # → ✅ 6/6 stages as expected
 
-# 3. The artwork renderer (open in Chrome/Edge, or:)
+# 3. The standardized NFT card layer
+node lib/card.js                                          # → ✅ standardized NFT card metadata
+
+# 4. The artwork renderer (open in Chrome/Edge, or:)
 python -m http.server 8137 --directory prototypes/living-tree-renderer
 #   then open http://localhost:8137
 ```
@@ -27,6 +30,7 @@ python -m http.server 8137 --directory prototypes/living-tree-renderer
 
 AI assistants should also read [`CLAUDE.md`](CLAUDE.md) for the project workflow and external prompt-reference policy.
 For deterministic output rules, read [`docs/consistent-output.md`](docs/consistent-output.md).
+For NFT card output rules, read [`specs/nft-card-output.md`](specs/nft-card-output.md).
 
 ## Ground rules
 

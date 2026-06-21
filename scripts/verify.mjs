@@ -12,7 +12,14 @@ const requiredFiles = [
   "specs/device-registration.md",
   "specs/oracle-api.md",
   "specs/growth-rules.md",
+  "specs/nft-card-output.md",
   "lib/growth.js",
+  "lib/card.js",
+  "lib/identity.mjs",
+  "oracle/server.mjs",
+  "oracle/sim-device.mjs",
+  "scripts/e2e.mjs",
+  "web/dashboard/index.html",
   "prototypes/living-tree-renderer/index.html",
   "prototypes/device-binding-demo/binding-demo.mjs",
 ];
@@ -67,6 +74,15 @@ function checkDocsReferenceCanonicalGrowth() {
   else pass("docs point to canonical growth rules");
 }
 
+function checkDocsReferenceCanonicalCardLayer() {
+  const files = ["CONTRIBUTING.md", "CLAUDE.md", "docs/consistent-output.md", "specs/nft-card-output.md"];
+  const missing = files.filter(
+    (file) => !readFileSync(resolve(root, file), "utf8").includes("lib/card.js")
+  );
+  if (missing.length) fail("docs point to canonical card layer", `missing reference: ${missing.join(", ")}`);
+  else pass("docs point to canonical card layer");
+}
+
 async function checkGrowthDeterminism() {
   const growth = await import(pathToFileURL(resolve(root, "lib/growth.js")).href);
   const input = {
@@ -100,8 +116,11 @@ async function checkGrowthDeterminism() {
 
 checkRequiredFiles();
 checkDocsReferenceCanonicalGrowth();
+checkDocsReferenceCanonicalCardLayer();
 run("growth self-test", "node", ["lib/growth.js"], "6/6 stages as expected");
+run("card layer self-test", "node", ["lib/card.js"], "standardized NFT card metadata");
 run("device binding demo", "node", ["prototypes/device-binding-demo/binding-demo.mjs"], "10 passed, 0 failed");
+run("end-to-end Oracle flow", "node", ["scripts/e2e.mjs"], "0 failed");
 await checkGrowthDeterminism();
 
 if (failures) {
